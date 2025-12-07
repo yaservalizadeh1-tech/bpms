@@ -74,7 +74,9 @@ async function checkTickets() {
 
     if (currentId !== lastTicketId) {
       lastTicketId = currentId;
-      sendPush("تیکت جدید", latest.taskName || "یک تیکت جدید ثبت شد");
+      const title = "تیکت جدید";
+      const body = latest.taskName || "یک تیکت جدید ثبت شد";
+      sendPush(title, body);
       console.log("📨 New ticket notification sent:", currentId);
     }
   } catch (err) {
