@@ -2,12 +2,15 @@ import http from "http";
 import fetch from "node-fetch";
 import webpush from "web-push";
 
+// ✅ کلیدهای VAPID از Environment Variables
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE;
 
+// ✅ اطلاعات ورود BPMS از Environment Variables
 const BPMS_USER = process.env.BPMS_USER;
 const BPMS_PASS = process.env.BPMS_PASS;
 
+// ✅ تنظیم Web Push
 webpush.setVapidDetails(
   "mailto:example@example.com",
   VAPID_PUBLIC,
@@ -18,6 +21,7 @@ let lastTicketId = null;
 let subscribers = [];
 let authCookie = null;
 
+// ✅ لاگین خودکار به BPMS
 async function loginToBPMS() {
   try {
     const res = await fetch("https://bizagiback.okcs.com/api/Account/login", {
@@ -30,17 +34,19 @@ async function loginToBPMS() {
     });
 
     const setCookie = res.headers.get("set-cookie");
+
     if (setCookie && setCookie.includes(".ASPXAUTH")) {
       authCookie = setCookie.split(";")[0];
       console.log("✅ Logged in to BPMS");
     } else {
-      console.log("❌ Login failed: no auth cookie");
+      console.log("❌ Login failed: no auth cookie returned");
     }
   } catch (err) {
     console.log("❌ Login error:", err);
   }
 }
 
+// ✅ چک کردن تیکت‌ها
 async function checkTickets() {
   if (!authCookie) {
     await loginToBPMS();
@@ -68,17 +74,16 @@ async function checkTickets() {
 
     if (currentId !== lastTicketId) {
       lastTicketId = currentId;
-      const title = "تیکت جدید";
-      const body = latest.taskName || "یک تیکت جدید ثبت شد";
-      sendPush(title, body);
+      sendPush("تیکت جدید", latest.taskName || "یک تیکت جدید ثبت شد");
       console.log("📨 New ticket notification sent:", currentId);
     }
   } catch (err) {
     console.log("❌ Error checking tickets:", err);
-    authCookie = null; // لاگین دوباره در چک بعدی
+    authCookie = null; // کوکی باطل شده → لاگین دوباره
   }
 }
 
+// ✅ ارسال نوتیف
 function sendPush(title, body) {
   subscribers.forEach(sub => {
     webpush
@@ -87,8 +92,10 @@ function sendPush(title, body) {
   });
 }
 
+// ✅ هر ۳۰ ثانیه چک کن
 setInterval(checkTickets, 30000);
 
+// ✅ سرور برای دریافت subscribe
 const server = http.createServer((req, res) => {
   if (req.method === "POST" && req.url === "/subscribe") {
     let body = "";
@@ -105,4 +112,5 @@ const server = http.createServer((req, res) => {
   }
 });
 
+// ✅ اجرای سرور
 server.listen(3000, () => console.log("🚀 Server running on port 3000"));
